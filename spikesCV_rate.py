@@ -14,13 +14,14 @@ import scipy.stats as st
 #****************************************************************************
 filepath = '/home/murat/Documents/Data_Recorded_CNRS/2020_05_27/20200527_Cell407_001.smr'
 artifact_threshold = 0.2
-spike_threshold = 2.5
+spike_threshold = 3
 #    range of analysing data
 file_start = 232  # seconds
-file_end = 560 #250  # seconds
+file_end = 300  # seconds
 hide_stim_artifacts = True
 spikelets_thresh = 0.5
 #******************************************************************************
+
 def get_spike_2(file):
     reader = neo.io.Spike2IO(filename=file)
     # # read the block
@@ -65,18 +66,21 @@ def filter_pandas_series(data_series, cutoff, type='high', order=5): # use array
 vm, channels = get_spike_2(filepath)
 vm_filt = filter_pandas_series(vm, 100, type='high')
 
+#       converting file to .csv format
+#    ------------------------------------
 df = pd.DataFrame(vm_filt)
-# saving the dataframe
+# saving the dataframe as .csv
 df.to_csv('/home/murat/Desktop/file1.csv')
 
 with open('/home/murat/Desktop/file1.csv') as file:
     reader = csv.reader(file, delimiter=',')
-signals = pd.read_csv ('/home/murat/Desktop/file1.csv')
+signals = pd.read_csv('/home/murat/Desktop/file1.csv')
+#    -------------------------------------
+
 
 signals = pd.DataFrame(signals)
-signals.columns=['time','Vm']
+signals.columns = ['time', 'Vm']
 #print(signals)
-
 
 peaks, _ = find_peaks(signals['Vm'], height=2.5)
 # plt.plot(signals['Vm'])
@@ -87,13 +91,13 @@ rows = []
 for it in peaks:
     rows.append([it, signals._get_value(index=it, col='Vm'), signals._get_value(index=it, col='time')])
 
-# spikes with corresponding time, amplitude, samples
+# creating table of spikes with corresponding time, amplitude, samples
 dh = pd.DataFrame(rows, columns=["samples", "Vm", "time"])
 number_of_ISI = dh.index.max() - 1
 firing_rate = number_of_ISI / (file_end - file_start)
 print('firing_rate =', firing_rate, 'Hz')
 
-# calculating interspike intervals (ISI) and coefficient of variance,
+# calculating interspike intervals (ISI) and coefficient of variance (CV),
 intervals = []
 for i in range(0, dh.index.max()):
     intervals.append([i, dh._get_value(index=i+1, col='time') - dh._get_value(index=i, col='time')])
@@ -119,9 +123,9 @@ kde_xs = np.linspace(mn, mx, number_of_ISI+1)
 # plt.xlabel('Intervals')
 
 
-fig, axes = plt.subplots(2,1,figsize=(12,9))
+fig, axes = plt.subplots(2, 1, figsize=(12, 9))
 axes[0].plot(signals['Vm'])
-axes[0].plot(peaks, signals['Vm'][peaks], "*" )
+axes[0].plot(peaks, signals['Vm'][peaks], "*")
 axes[0].set_xlabel("samples")
 axes[0].set_ylabel("voltage (mV)")
 
