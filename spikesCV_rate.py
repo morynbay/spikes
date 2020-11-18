@@ -77,7 +77,7 @@ with open('/home/murat/Desktop/file1.csv') as file:
 signals = pd.read_csv('/home/murat/Desktop/file1.csv')
 #    -------------------------------------
 
-
+#  creating data table and finding peaks from it
 signals = pd.DataFrame(signals)
 signals.columns = ['time', 'Vm']
 #print(signals)
@@ -87,11 +87,12 @@ peaks, _ = find_peaks(signals['Vm'], height=2.5)
 # plt.plot(peaks, signals['Vm'][peaks], "*" )
 # peaks_table = pd.DataFrame(peaks)
 
+
+# creating table of spikes with corresponding time, amplitude, samples
 rows = []
 for it in peaks:
     rows.append([it, signals._get_value(index=it, col='Vm'), signals._get_value(index=it, col='time')])
 
-# creating table of spikes with corresponding time, amplitude, samples
 dh = pd.DataFrame(rows, columns=["samples", "Vm", "time"])
 number_of_ISI = dh.index.max() - 1
 firing_rate = number_of_ISI / (file_end - file_start)
