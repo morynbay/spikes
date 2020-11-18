@@ -6,6 +6,7 @@ from scipy.signal import find_peaks
 import numpy as np
 import csv
 import scipy.stats as st
+from matplotlib.offsetbox import AnchoredText
 
 # parameters to pay attention in the script highlighted with *
 # filepath, file_start, file_end,
@@ -17,7 +18,7 @@ artifact_threshold = 0.2
 spike_threshold = 3
 #    range of analysing data
 file_start = 232  # seconds
-file_end = 300  # seconds
+file_end = 250  # seconds
 hide_stim_artifacts = True
 spikelets_thresh = 0.5
 #******************************************************************************
@@ -123,6 +124,8 @@ kde_xs = np.linspace(mn, mx, number_of_ISI+1)
 # plt.ylabel('Counts')
 # plt.xlabel('Intervals')
 
+x = np.linspace(-0.02, 0.1, 1000)
+y = st.norm(4.0, 2.0).pdf(x)
 
 fig, axes = plt.subplots(2, 1, figsize=(12, 9))
 axes[0].plot(signals['Vm'])
@@ -130,13 +133,21 @@ axes[0].plot(peaks, signals['Vm'][peaks], "*")
 axes[0].set_xlabel("samples")
 axes[0].set_ylabel("voltage (mV)")
 
+# axes[1].plot(x, y, 'r', lw=2)
+# axes[1].set_xlim(-0.02, 0.1)
 axes[1].hist(spike_intervals, density=True, bins=80)
 axes[1].mn, mx = plt.xlim()
-#axes[1].xlim(mn, mx)
-#axes[1].kde_xs = np.linspace(mn, mx, 10)
+axes[1].set_xlim(mn, mx)
+axes[1].kde_xs = np.linspace(mn, mx, 1000)
 axes[1].kde = st.gaussian_kde(spike_intervals)
 axes[1].plot(kde_xs, kde.pdf(kde_xs), label="PDF")
 axes[1].set_xlabel("intervals (s)")
 axes[1].set_ylabel("counts")
+
+anotation = "CV = " + str(coef_var), "firing rate =" + str(firing_rate)
+at = AnchoredText(anotation, prop=dict(size=10), frameon=True, loc='upper left')
+at.patch.set_boxstyle("round,pad=0.,rounding_size=0.2")
+axes[1].add_artist(at)
+
 
 plt.show()
