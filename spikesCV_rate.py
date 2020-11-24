@@ -107,7 +107,7 @@ ISI_table = pd.DataFrame(intervals, columns=["N", "ISI"])
 
 spike_intervals = np.array(intervals)[:, 1]
 mean_of_ISI = np.mean(spike_intervals)
-stdev_intervals = np.std(spike_intervals)
+stdev_intervals = np.std(spike_intervals, ddof=1)   # ddof=1 for case 1/(N-1),  ddof=0 for case 1/N
 coef_var = stdev_intervals/mean_of_ISI
 
 print('coefficient of variance =', coef_var)
@@ -144,10 +144,13 @@ axes[1].plot(kde_xs, kde.pdf(kde_xs), label="PDF")
 axes[1].set_xlabel("intervals (s)")
 axes[1].set_ylabel("counts")
 
-anotation = "CV = " + str(coef_var), "firing rate =" + str(firing_rate)
+anotation = "CV = " + str(np.round(coef_var, 4))
+anotation += "\n"
+anotation += "firing rate = " + str(np.round(firing_rate, 4))
+anotation += "\n"
+anotation += "ISI mean = " + str(np.round(mean_of_ISI, 4)) + '\xB1' + str(np.round(stdev_intervals, 4))
 at = AnchoredText(anotation, prop=dict(size=10), frameon=True, loc='upper left')
 at.patch.set_boxstyle("round,pad=0.,rounding_size=0.2")
 axes[1].add_artist(at)
-
 
 plt.show()
