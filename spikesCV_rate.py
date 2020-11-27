@@ -3,12 +3,13 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from scipy.signal import butter, lfilter
 from scipy.signal import find_peaks
+from scipy.signal import peak_widths
 import numpy as np
 import csv
 import scipy.stats as st
 from matplotlib.offsetbox import AnchoredText
 
-# parameters to pay attention in the script highlighted with *
+# parameters to pay attention in the script highlighted with *****
 # filepath, file_start, file_end,
 # filter_pandas_series - filter order,
 # Histogram with bins
@@ -18,7 +19,7 @@ artifact_threshold = 0.2
 spike_threshold = 3
 #    range of analysing data
 file_start = 232  # seconds
-file_end = 250  # seconds
+file_end = 253  # seconds
 hide_stim_artifacts = True
 spikelets_thresh = 0.5
 #******************************************************************************
@@ -83,11 +84,19 @@ signals = pd.DataFrame(signals)
 signals.columns = ['time', 'Vm']
 #print(signals)
 
-peaks, _ = find_peaks(signals['Vm'], height=2.5)
+peaks, _ = find_peaks(signals['Vm'], height=(0, 7), prominence=4)
+peaks_table = pd.DataFrame(peaks)
+width_half = peak_widths(signals['Vm'], peaks, rel_height=0.25)
+#  for wdh dataframe [0]-row is half width; [1]-row is level of the half width; [2]-?; [3]-?
+wdh = pd.DataFrame(width_half)
+width_half[0]
+width_full = peak_widths(signals['Vm'], peaks, rel_height=1)
+width_full[0]
 # plt.plot(signals['Vm'])
 # plt.plot(peaks, signals['Vm'][peaks], "*" )
-# peaks_table = pd.DataFrame(peaks)
-
+# plt.hlines(*width_half[1:], color="C2")
+# plt.hlines(*width_full[1:], color="C3")
+#plt.show()
 
 # creating table of spikes with corresponding time, amplitude, samples
 rows = []
@@ -99,22 +108,20 @@ number_of_ISI = dh.index.max() - 1
 firing_rate = number_of_ISI / (file_end - file_start)
 print('firing_rate =', firing_rate, 'Hz')
 
-# calculating interspike intervals (ISI) and coefficient of variance (CV),
+#  ------------------------------------------------------------------------------
+# calculating interspikes intervals (ISI) and coefficient of variance (CV),
 intervals = []
 for i in range(0, dh.index.max()):
     intervals.append([i, dh._get_value(index=i+1, col='time') - dh._get_value(index=i, col='time')])
 ISI_table = pd.DataFrame(intervals, columns=["N", "ISI"])
-
 spike_intervals = np.array(intervals)[:, 1]
 mean_of_ISI = np.mean(spike_intervals)
-stdev_intervals = np.std(spike_intervals, ddof=1)   # ddof=1 for case 1/(N-1),  ddof=0 for case 1/N
+stdev_intervals = np.std(spike_intervals, ddof=1)   # standard deviation (SD) of intervals;  ddof=1 for case 1/(N-1),  ddof=0 for case 1/N
 coef_var = stdev_intervals/mean_of_ISI
-sterr = stdev_intervals / np.sqrt(spike_intervals.size)
-
-
+sterr = stdev_intervals / np.sqrt(spike_intervals.size)   #  standard error of the mean (SEM)
 print('coefficient of variance =', coef_var)
-#print(spike_intervals)
 
+#  --------------------------------------------------------------------------------
 
 #  Histogram with bins
 plt.hist(spike_intervals, density=True, bins=80)   # 'density=False' would make counts
@@ -134,6 +141,8 @@ axes[0].plot(signals['Vm'])
 axes[0].plot(peaks, signals['Vm'][peaks], "*")
 axes[0].set_xlabel("samples")
 axes[0].set_ylabel("voltage (mV)")
+axes[0].hlines(*width_half[1:], color="C2")  # zoom single spike, you will see half width line
+#axes[0].hlines(*width_full[1:], color="C3")
 
 # axes[1].plot(x, y, 'r', lw=2)
 # axes[1].set_xlim(-0.02, 0.1)
@@ -146,6 +155,7 @@ axes[1].plot(kde_xs, kde.pdf(kde_xs), label="PDF")
 axes[1].set_xlabel("intervals (s)")
 axes[1].set_ylabel("counts")
 
+#         anotation in the figure
 anotation = "CV = " + str(np.round(coef_var, 5))
 anotation += "\n"
 anotation += "firing rate = " + str(np.round(firing_rate, 5))
