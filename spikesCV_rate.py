@@ -14,13 +14,14 @@ from matplotlib.offsetbox import AnchoredText
 # filter_pandas_series - filter order,
 # Histogram with bins
 # also without_first_N_samples = df.iloc[360:] deleting artefacts in the beginning of data
+# and prominence in   peaks, _ = find_peaks(signals['Vm'], height=(0, 7), prominence=1)
 #****************************************************************************
-filepath = '/home/murat/Documents/Data_Recorded_CNRS/2020_05_27/20200527_Cell407_001.smr'
+filepath = '/home/murat/Documents/Data_Recorded_CNRS/2020_08_26/20200826_Cell496_000.smr'
 artifact_threshold = 0.2
-spike_threshold = 3
+spike_threshold = 2
 #    range of analysing data
-file_start = 235  # seconds
-file_end = 237  # seconds
+file_start = 25.508  # seconds
+file_end = 26.458  # seconds
 hide_stim_artifacts = True
 spikelets_thresh = 0.5
 #******************************************************************************
@@ -73,7 +74,7 @@ vm_filt = filter_pandas_series(vm, 100, type='high')
 #    ----------------------------------------------------------------------
 #plt.plot(vm_filt)
 df = pd.DataFrame(vm_filt)
-without_first_N_samples = df.iloc[220:]  # deleting first N samples in dataframe because of artefact in the beginning
+without_first_N_samples = df.iloc[1:]  # deleting first N samples in dataframe because of artefact in the beginning
 #plt.plot(without_first_N_samples)
 
 # saving the dataframe as .csv
@@ -89,7 +90,7 @@ signals = pd.DataFrame(sig)
 signals.columns = ['time', 'Vm']
 #print(signals)
 
-peaks, _ = find_peaks(signals['Vm'], height=(0, 7), prominence=7)
+peaks, _ = find_peaks(signals['Vm'], height=(0, 7), prominence=2)
 peaks_table = pd.DataFrame(peaks)
 width_half = peak_widths(signals['Vm'], peaks, rel_height=0.25)
 
@@ -154,52 +155,55 @@ sterr_widths = stdev_widths / np.sqrt(spikes_widths.size)  #  standard error of 
 
 #   making Figures
 fig, axes = plt.subplots(3, 1, figsize=(10, 6))
+
 axes[0].plot(signals['Vm'])
 axes[0].plot(peaks, signals['Vm'][peaks], "*")
-axes[0].set_xlabel("samples")
-axes[0].set_ylabel("voltage (mV)")
+axes[0].set_xlabel("samples", fontsize=10.0)
+axes[0].set_ylabel("voltage (mV)", fontsize=10.0)
 axes[0].hlines(*width_half[1:], color="C2")  # zoom single spike, you will see half width line
 #axes[0].hlines(*width_full[1:], color="C3")
 
-mn, mx = plt.xlim(left=spike_intervals.min(), right=spike_intervals.max())
+mn, mx = plt.xlim(left=(spike_intervals.min() - 0.5 * spike_intervals.min()), right=(spike_intervals.max() + 0.5 * spike_intervals.max()))
 kde_xs = np.linspace(mn, mx, number_of_ISI+1)
 kde = st.gaussian_kde(spike_intervals)
 axes[1].hist(spike_intervals, density=True, bins=80)
-axes[1].mn, mx = plt.xlim()
+axes[1].mn, mx = plt.xlim(left=(spike_intervals.min() - 0.5 * spike_intervals.min()), right=(spike_intervals.max() + 0.5 * spike_intervals.max()))
 axes[1].set_xlim(mn, mx)
 axes[1].kde_xs = np.linspace(mn, mx, number_of_ISI+1)
 axes[1].kde = st.gaussian_kde(spike_intervals)
 axes[1].plot(kde_xs, kde.pdf(kde_xs), label="PDF")
-axes[1].set_xlabel("intervals (s)")
-axes[1].set_ylabel("counts")
+axes[1].set_xlabel("intervals (s)", fontsize=10.0)
+axes[1].set_ylabel("counts", fontsize=10.0)
+
 
 #         anotation in the figure #2
 anotation = "CV = " + str(np.round(coef_var, 5))
 anotation += "\n"
 anotation += "firing rate = " + str(np.round(firing_rate, 5))
 anotation += "\n"
-anotation += "ISI mean = " + str(np.round(mean_of_ISI, 5)) + '\xB1' + str(np.round(stdev_intervals, 5))
+anotation += "ISI mean = " + str(np.round(mean_of_ISI, 5)) + '\xB1' + str(np.round(sterr, 5))
 at = AnchoredText(anotation, prop=dict(size=10), frameon=True, loc='upper right')
 at.patch.set_boxstyle("round,pad=0.,rounding_size=0.2")
 axes[1].add_artist(at)
 
 
-mi, ma = plt.xlim(left=spikes_widths.min(), right=spikes_widths.max())
+mi, ma = plt.xlim(left=(spikes_widths.min() - 0.1 * spikes_widths.min()), right=(spikes_widths.max() + 0.1 * spikes_widths.max()))
 kde_wh = np.linspace(mi, ma, number_of_all_widths)
 gauss_kde = st.gaussian_kde(spikes_widths)
 axes[2].hist(spikes_widths, density=True, bins=80)
-axes[2].mi, ma = plt.xlim(left=spikes_widths.min(), right=spikes_widths.max())
+axes[2].mi, ma = plt.xlim((spikes_widths.min() - 0.1 * spikes_widths.min()), right=(spikes_widths.max() + 0.1 * spikes_widths.max()))
 axes[2].set_xlim(mi, ma)
 axes[2].kde_wh = np.linspace(mi, ma, number_of_all_widths)
 axes[2].gauss_kde = st.gaussian_kde(spikes_widths)
 axes[2].plot(kde_wh, gauss_kde.pdf(kde_wh), label="PDF")
-axes[2].set_xlabel("spike width (s)")
-axes[2].set_ylabel("counts")
+axes[2].set_xlabel("spike width (s)", fontsize=10.0)
+axes[2].set_ylabel("counts", fontsize=10.0)
+
 
 #         anotation in the figure #3
 anotation = "CV = " + str(np.round(coef_var_width, 5))
 anotation += "\n"
-anotation += "widths mean = " + str(np.round(mean_of_spikes_widths, 5)) + '\xB1' + str(np.round(stdev_widths, 5))
+anotation += "widths mean = " + str(np.round(mean_of_spikes_widths, 5)) + '\xB1' + str(np.round(sterr_widths, 5))
 at = AnchoredText(anotation, prop=dict(size=10), frameon=True, loc='upper right')
 at.patch.set_boxstyle("round,pad=0.,rounding_size=0.2")
 axes[2].add_artist(at)
